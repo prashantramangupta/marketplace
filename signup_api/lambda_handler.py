@@ -37,9 +37,9 @@ def request_handler(event, context):
             return get_response(400, "Invalid URL path.")
         if resp_dta is None:
             err_msg = {'status': 'failed', 'error': 'Bad Request', 'api': event['path'], 'payload': payload_dict}
-            response = get_response("500", err_msg)
+            response = get_response(500, err_msg)
         else:
-            response = get_response("200", {"status": "success", "data": resp_dta})
+            response = get_response(200, {"status": "success", "data": resp_dta})
     except Exception as e:
         err_msg = {"status": "failed", "error": repr(e), 'api': event['path'], 'payload': payload_dict}
         response = get_response(500, err_msg)

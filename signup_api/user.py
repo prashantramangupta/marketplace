@@ -67,7 +67,7 @@ class User:
                     self.repo.commit_transaction()
                     result = self.repo.execute("SELECT * FROM wallet WHERE username = %s", username)
                     return {"success": "success", "data": result}
-                return {"success": "failed"}
+                return None
             else:
                 raise Exception("User Already Exist!")
 

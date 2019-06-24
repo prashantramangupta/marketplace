@@ -34,7 +34,7 @@ def request_handler(event, context):
             username = path.split("/")[2]
             resp_dta = usr_obj.del_user_data(username=username)
         else:
-            return get_response(400, path)
+            return get_response(400, "Invalid URL path.")
         if resp_dta is None:
             err_msg = {'status': 'failed', 'error': 'Bad Request', 'api': event['path'], 'payload': payload_dict}
             response = get_response("500", err_msg)

@@ -31,7 +31,7 @@ class TestSignUPAPI(unittest.TestCase):
         assert (response["statusCode"] == 400)
         assert (response["body"] == '"Invalid URL path."')
 
-    @patch('client.Client.invoke_service')
+    @patch('client.Client.call_service')
     def test_call_service(self, mock_get):
         self.call_service.update(self.event)
         self.call_service['body'] = json.dumps(self.call_service['body'])

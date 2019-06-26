@@ -69,24 +69,21 @@ class Registry:
         except Exception as err:
             raise err
 
-    def _get_total_count(self, org_id, sub_qry):
+    def _get_total_count(self, sub_qry):
         try:
-            count_qry = "SELECT COUNT(*) AS total_count FROM service_metadata M LEFT JOIN service_tags T ON " \
-                        "M.service_row_id = T.service_row_id WHERE  M.org_id = %s AND (" + sub_qry.replace('%', '%%') + \
-                        ") GROUP BY M.org_id, M.service_id LIMIT 1";
-            res = self.repo.execute(count_qry, [org_id])
-            if len(res) == 0:
-                return 0
-            return res[0].get("total_count", 0)
+            count_qry = "SELECT DISTINCT M.org_id, M.service_id FROM service_metadata M INNER JOIN service_tags T ON " \
+                        "M.service_row_id = T.service_row_id WHERE (" + sub_qry.replace('%', '%%') + ") ";
+            res = self.repo.execute(count_qry)
+            return len(res)
         except Exception as err:
             raise err
 
-    def _srch_qry_dta(self, org_id, sub_qry, sort_by, order_by, offset, limit):
+    def _srch_qry_dta(self, sub_qry, sort_by, order_by, offset, limit):
         try:
             srch_qry = "SELECT M.org_id, M.service_id, group_concat(T.tag_name) AS tags FROM service_metadata M " \
-                       "LEFT JOIN service_tags T ON M.service_row_id = T.service_row_id WHERE M.org_id = %s AND (" \
-                       + sub_qry.replace('%', '%%') + ") GROUP BY T.org_id, M.service_id ORDER BY %s %s LIMIT %s , %s"
-            qry_dta = self.repo.execute(srch_qry, [org_id, sort_by, order_by, int(offset), int(limit)])
+                       "LEFT JOIN service_tags T ON M.service_row_id = T.service_row_id WHERE " \
+                       + sub_qry.replace('%', '%%') + " GROUP BY M.org_id, M.service_id ORDER BY %s %s LIMIT %s , %s"
+            qry_dta = self.repo.execute(srch_qry, [sort_by, order_by, int(offset), int(limit)])
             org_srvc_tuple = ()
             rslt = {}
             for rec in qry_dta:
@@ -102,10 +99,16 @@ class Registry:
                                            }
 
             qry_part = " AND (S.org_id, S.service_id) IN " + str(org_srvc_tuple).replace(',)', ')')
-            services = self.repo.execute("SELECT M.* FROM service_metadata M, service S WHERE S.org_id = %s AND "
-                                         "S.row_id = M.service_row_id " + qry_part, [org_id])
+            services = self.repo.execute("SELECT M.* FROM service_metadata M, service S WHERE "
+                                         "S.row_id = M.service_row_id " + qry_part)
             obj_utils = Utils()
             obj_utils.clean(services)
+            votes_count = self.fetch_total_count()
+            count = 0
+            for rec in services:
+                services[count].update({"votes":votes_count[rec["org_id"]][rec["service_id"]]})
+                services[count].update({"tags":rslt[rec["org_id"]]["tags"]})
+                count = count + 1
 
             return services
         except Exception as err:
@@ -127,10 +130,10 @@ class Registry:
             sort_by = fields_mapping.get(qry_param.get('sort_by', None), "display_name")
             order_by = qry_param.get('order_by', 'asc')
             sub_qry = self._prepare_subquery(s=s, q=q, fm=fields_mapping)
-            total_count = self._get_total_count(org_id=org_id, sub_qry=sub_qry)
+            total_count = self._get_total_count(sub_qry=sub_qry)
             if total_count == 0:
                 return self._srch_resp_format(total_count, offset, limit, [])
-            q_dta = self._srch_qry_dta(org_id=org_id, sub_qry=sub_qry, sort_by=sort_by, order_by=order_by,
+            q_dta = self._srch_qry_dta(sub_qry=sub_qry, sort_by=sort_by, order_by=order_by,
                                        offset=offset, limit=limit)
             return self._srch_resp_format(total_count, offset, limit, q_dta)
         except Exception as e:

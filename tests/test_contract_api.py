@@ -89,7 +89,13 @@ class TestContractAPI(unittest.TestCase):
         self.api_set_user_feedback.update(self.event)
         mock_get.return_value = True
         response = lambda_handler.request_handler(event=self.api_set_user_feedback, context=None)
+        assert (response["statusCode"] == 200)
+        response_body = json.loads(response["body"])
+        assert (response_body["status"] == "success")
 
+    def test_contract_api(self):
+        self.get_all_srvcs.update(self.event)
+        response = lambda_handler.request_handler(event=self.get_all_srvcs, context=None)
         assert (response["statusCode"] == 200)
         response_body = json.loads(response["body"])
         assert (response_body["status"] == "success")

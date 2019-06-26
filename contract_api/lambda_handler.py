@@ -33,7 +33,7 @@ def request_handler(event, context):
         else:
             return get_response(400, "Bad Request")
 
-        if path in ["/org", "/feedback"] or path[0:4] == "/org":
+        if path in ["/feedback"] or path[0:4] == "/org" or path[0:5] == "/user":
             obj_reg = Registry(obj_repo=db[net_id])
 
         if "/org" == path:
@@ -52,9 +52,11 @@ def request_handler(event, context):
             resp_dta = obj_mpe.get_channels_by_user_address(payload_dict['user_address'],
                                                             payload_dict.get('org_id', None),
                                                             payload_dict.get('service_id', None))
-        elif "/feedback" == path and event['httpMethod'] == 'GET':
-            resp_dta = get_user_feedback(payload_dict['user_address'], obj_reg=obj_reg)
-        elif "/feedback" == path and event['httpMethod'] == 'POST':
+        elif re.match("(\/user\/)[^\/]*(\/feedback)[/]{0,1}$", path):
+            params = path.split("/")
+            user_address = params[2]
+            resp_dta = get_user_feedback(user_address=user_address, obj_reg=obj_reg)
+        elif "/feedback" == path:
             resp_dta = set_user_feedback(payload_dict['feedback'], obj_reg=obj_reg, net_id=net_id)
         else:
             return get_response(400, "Invalid URL path.")
